@@ -58,6 +58,7 @@ wait_for_ssh
 
 #run install script for jq
 scp -o "StrictHostKeyChecking=no" -i ~/.ssh/jlp-tradecraft.pem install_jq.sh ec2-user@$MACHINE_IP:
+ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/jlp-tradecraft.pem ec2-user@$MACHINE_IP ./install_jq.sh
 
 echo "Host is ready. Access with: "
 echo "ssh ec2-user@$MACHINE_IP"

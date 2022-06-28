@@ -88,7 +88,7 @@ spec:
 EOF
 kubectl apply -f user.yml -n my-mongo-atlas
 ```
-Finally get the connect url with
+Finally when the cluster is fully started you can get the connect url with
 ```
 kubectl get secret jacob-borella-test-cluster-student -o json -n my-mongo-atlas | jq -r '.data | with_entries(.value |= @base64d)'
 ```
