@@ -24,7 +24,7 @@ kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-atlas-kuberne
 ```
 This will install the latest operator. It's possible to install earlier versions. The approach is described in the quick guide. Verify that the operator is running.
 
-Next we will setup Atlas to allow working with an existing project, where the Atlas cluster will run. In Atlas create an API key for your Atlas Project to use and assign the key the 'Project Owner' role or higher. Make note of the private/public key. Also find your OrganizationId.
+Next we will setup Atlas to allow working with an existing project, where the Atlas cluster will run. In Atlas create an API key for your Atlas Project to use and assign the key the 'Project Owner' role. Make note of the private/public key. Also find your OrganizationId.
 Now create a secret for these values
 ```
 kubectl create secret generic mongodb-atlas-operator-api-key \
