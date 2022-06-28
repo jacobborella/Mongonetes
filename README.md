@@ -16,3 +16,83 @@ minikube start
 kubectl get po -A
 ```
 to start and verify your environment. Now you are ready to install MongoDB
+
+## Spinning up an Atlas cluster through the MongoDB Atlas operator
+This can be done in a few and easy steps. I you want the full description refer to [the MongoDB Atlas operator Quick Start Guide](https://www.mongodb.com/docs/atlas/reference/atlas-operator/ak8so-quick-start/#std-label-ak8so-quick-start-ref)
+```
+kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-atlas-kubernetes/main/deploy/namespaced/crds.yaml
+kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-atlas-kubernetes/main/deploy/namespaced/namespaced-config.yaml
+```
+This will install the latest operator. It's possible to install earlier versions. The approach is described in the quick guide.
+
+Next we will setup Atlas to allow working with an existing project, where the Atlas cluster will run. In Atlas create an API key for your Atlas Project to use and assign the key the 'Project Owner' role or higher. Make note of the private/public key. Also find your OrganizationId.
+Now create a secret for these values
+```
+kubectl create secret generic mongodb-atlas-operator-api-key \
+    --from-literal="orgId=<atlas_organization_id>" \
+    --from-literal="publicApiKey=<atlas_api_public_key>" \
+    --from-literal="privateApiKey=<atlas_api_private_key>" \
+    -n mongodb-atlas-system
+kubectl label secret mongodb-atlas-operator-api-key atlas.mongodb.com/type=credentials -n mongodb-atlas-system
+```
+With that in place you are ready to spin up your Atlas cluster. In the code below replace k8s-demo with your Atlas project name and run the script.
+```
+cat > atlas-project.yml << EOF 
+apiVersion: atlas.mongodb.com/v1
+kind: AtlasProject
+metadata:
+  name: my-project
+spec:
+  name: k8s-demo
+  projectIpAccessList:
+    - ipAddress: "0.0.0.0/0"
+      comment: "Allowing access to database from everywhere (only for Demo!)"
+EOF
+cat > atlas-cluster.yml << EOF
+apiVersion: atlas.mongodb.com/v1
+kind: AtlasDeployment
+metadata:
+  name: my-atlas-cluster
+spec:
+  projectRef:
+    name: my-project
+  deploymentSpec:
+    name: "Test-cluster"
+    providerSettings:
+      instanceSizeName: M10
+      providerName: AWS
+      regionName: US_EAST_1
+EOF
+kubectl apply -f atlas-project.yml -n mongodb-atlas-system
+kubectl apply -f atlas-cluster.yml -n mongodb-atlas-system
+```
+
+Now a database will be provisioned. You can also setup a user for access to the DB
+```
+kubectl create secret generic the-user-password --from-literal="password=P@@sword%" -n mongodb-atlas-system
+kubectl label secret the-user-password atlas.mongodb.com/type=credentials -n mongodb-atlas-system
+cat > user.yml << EOF
+apiVersion: atlas.mongodb.com/v1
+kind: AtlasDatabaseUser
+metadata:
+  name: my-database-user
+spec:
+  roles:
+    - roleName: "readWriteAnyDatabase"
+      databaseName: "admin"
+  projectRef:
+    name: my-project
+  username: student
+  passwordSecretRef:
+    name: the-user-password
+EOF
+kubectl apply -f user.yml -n mongodb-atlas-system
+```
+Finally get the connect url with
+```
+kubectl get secret jacob-borella-test-cluster-student -o json -n mongodb-atlas-system | jq -r '.data | with_entries(.value |= @base64d)'
+```
+
+
+
+
