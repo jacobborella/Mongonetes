@@ -20,10 +20,9 @@ to start and verify your environment. Now you are ready to install MongoDB
 ## Spinning up an Atlas cluster through the MongoDB Atlas operator
 This can be done in a few and easy steps. I you want the full description refer to [the MongoDB Atlas operator Quick Start Guide](https://www.mongodb.com/docs/atlas/reference/atlas-operator/ak8so-quick-start/#std-label-ak8so-quick-start-ref)
 ```
-kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-atlas-kubernetes/main/deploy/namespaced/crds.yaml
-kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-atlas-kubernetes/main/deploy/namespaced/namespaced-config.yaml
+kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-atlas-kubernetes/main/deploy/all-in-one.yaml
 ```
-This will install the latest operator. It's possible to install earlier versions. The approach is described in the quick guide.
+This will install the latest operator. It's possible to install earlier versions. The approach is described in the quick guide. Verify that the operator is running.
 
 Next we will setup Atlas to allow working with an existing project, where the Atlas cluster will run. In Atlas create an API key for your Atlas Project to use and assign the key the 'Project Owner' role or higher. Make note of the private/public key. Also find your OrganizationId.
 Now create a secret for these values
@@ -43,7 +42,7 @@ kind: AtlasProject
 metadata:
   name: my-project
 spec:
-  name: k8s-demo
+  name: Jacob Borella
   projectIpAccessList:
     - ipAddress: "0.0.0.0/0"
       comment: "Allowing access to database from everywhere (only for Demo!)"
@@ -63,14 +62,15 @@ spec:
       providerName: AWS
       regionName: US_EAST_1
 EOF
-kubectl apply -f atlas-project.yml -n mongodb-atlas-system
-kubectl apply -f atlas-cluster.yml -n mongodb-atlas-system
+kubectl create namespace my-mongo-atlas
+kubectl apply -f atlas-project.yml -n my-mongo-atlas
+kubectl apply -f atlas-cluster.yml -n my-mongo-atlas
 ```
 
 Now a database will be provisioned. You can also setup a user for access to the DB
 ```
-kubectl create secret generic the-user-password --from-literal="password=P@@sword%" -n mongodb-atlas-system
-kubectl label secret the-user-password atlas.mongodb.com/type=credentials -n mongodb-atlas-system
+kubectl create secret generic the-user-password --from-literal="password=P@@sword%" -n my-mongo-atlas
+kubectl label secret the-user-password atlas.mongodb.com/type=credentials -n my-mongo-atlas
 cat > user.yml << EOF
 apiVersion: atlas.mongodb.com/v1
 kind: AtlasDatabaseUser
@@ -86,13 +86,17 @@ spec:
   passwordSecretRef:
     name: the-user-password
 EOF
-kubectl apply -f user.yml -n mongodb-atlas-system
+kubectl apply -f user.yml -n my-mongo-atlas
 ```
 Finally get the connect url with
 ```
-kubectl get secret jacob-borella-test-cluster-student -o json -n mongodb-atlas-system | jq -r '.data | with_entries(.value |= @base64d)'
+kubectl get secret jacob-borella-test-cluster-student -o json -n my-mongo-atlas | jq -r '.data | with_entries(.value |= @base64d)'
 ```
-
-
+When you are done with the environment, you can delete the ressources with
+```
+kubectl delete -f user.yml -n my-mongo-atlas
+kubectl delete -f atlas-cluster.yml -n my-mongo-atlas
+# be careful this command will delete your Atlas project kubectl delete -f atlas-project.yml -n my-mongo-atlas
+```
 
 
