@@ -22,7 +22,6 @@ public class HelloWorldServlet extends HttpServlet {
   @Override
   public void doGet(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
-    //String uri = "mongodb+srv://student:P%40%40sword%25@test-cluster.mha1t.mongodb.net/?retryWrites=true&w=majority";
     String pathInfo = request.getPathInfo();
     String dbUri = System.getenv("DB_URI");
     if(dbUri == null || dbUri.length() == 0) {
