@@ -98,5 +98,50 @@ kubectl delete -f user.yml -n my-mongo-atlas
 kubectl delete -f atlas-cluster.yml -n my-mongo-atlas
 # be careful this command will delete your Atlas project kubectl delete -f atlas-project.yml -n my-mongo-atlas
 ```
+## Verifying the connection
+For verifying your connection, I've made a small service, which can fetch movies from the database.
 
+To build and run the service in minikube issue the following commands
+```
+#setup docker to point to the minikube env
+eval $(minikube docker-env)
 
+#build your image into the minikube repo
+docker build -t mongovalidate .
+
+#create the connect string to mongodb as a secret
+kubectl create secret generic mongo-connect-uri --from-literal=uri=$(kubectl get secret jacob-borella-test-cluster-student -o json -n my-mongo-atlas | jq -r '.data | with_entries(.value |= @base64d)' | jq -r '.connectionStringStandard') -n my-mongo-atlas
+
+#create the config file for the pod & deploy it
+cat > mongovalidate.yml << EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mongo-validate
+  labels:
+    name: mongo-validate
+spec:
+  containers:
+  - name: envar-demo-container
+    image: mongovalidate
+    imagePullPolicy: Never
+    env:
+    - name: DB_URI
+      valueFrom:
+        secretKeyRef:
+          name: mongo-connect-uri
+          key: uri
+          optional: false
+EOF
+kubectl apply -f mongovalidate.yml  -n my-mongo-atlas
+
+#expose the service
+kubectl expose pod mongo-validate  --type="NodePort" --port 8080 -n my-mongo-atlas
+
+#access the endpoint. this call should list the databases available
+curl $(minikube service --url mongo-validate -n my-mongo-atlas)/movie
+```
+If you want to se an actual movie load the sample dataset into your database. Then run
+```
+curl $(minikube service --url mongo-validate -n my-mongo-atlas)/movie/Frida
+```

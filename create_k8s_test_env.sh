@@ -1,4 +1,10 @@
 #!/bin/bash
+cd mdb-validator
+mvn package
+cd ..
+#TODO check if the build went well
+
+export AWS_PAGER=""
 OWNER=jacob.borella
 EXPIRE_ON=2022-06-29
 INSTANCE_NAME='Jacob Borella Tradecraft Mission17'
@@ -59,6 +65,10 @@ wait_for_ssh
 #run install script for jq
 scp -o "StrictHostKeyChecking=no" -i ~/.ssh/jlp-tradecraft.pem install_jq.sh ec2-user@$MACHINE_IP:
 ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/jlp-tradecraft.pem ec2-user@$MACHINE_IP ./install_jq.sh
+
+#copy a few files for the validator
+scp -o "StrictHostKeyChecking=no" -i ~/.ssh/jlp-tradecraft.pem mdb-validator/Dockerfile ec2-user@$MACHINE_IP:
+scp -o "StrictHostKeyChecking=no" -i ~/.ssh/jlp-tradecraft.pem mdb-validator/target/embedded-jetty-hello-world-1.jar ec2-user@$MACHINE_IP:
 
 echo "Host is ready. Access with: "
 echo "ssh ec2-user@$MACHINE_IP"
